@@ -3,12 +3,12 @@ import TodoHeader from './todoHeader';
 import TodoMain from './todoMain';
 import TodoFooter from './todoFooter';
 
-const Index = ({dbName}) => {
+const Index = (props) => {
 
   return(
     <div>
-      <TodoHeader dbName={dbName} />
-      <TodoMain dbName={dbName} />
+      <TodoHeader addTodo={props.addTodo} handleKeyPress={props.handleKeyPress}/>
+      <TodoMain todoList={props.todoList}/>
       <TodoFooter />
     </div>
   );
