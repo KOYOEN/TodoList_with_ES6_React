@@ -3,16 +3,25 @@ import TodoHeader from './todos/todoHeader';
 import Todos from './todos/index';
 import Footer from './footer';
 
-const enumList = {
-  dbName: "todos-reactjs",
-  sectionClassName: "todoapp",
-  footerClassName: "info",
+enum enumList {
+  dbName = "todos-reactjs",
+  sectionClassName = "todoapp",
 }
 
-const addTodo = (title, filter) => {
+interface Item {
+  id: number,
+  title: string,
+  completed: boolean
+}
+interface Props { }
+interface State {
+  todoList?: Array<Item>
+}
+
+const addTodo = (title: string, filter: string | boolean) => {
   title = title || "";
   filter = filter || "All";
-  const newItem = {
+  let newItem:Item = {
     id : new Date().getTime(),
     title: title,
     completed: false
@@ -26,10 +35,10 @@ const addTodo = (title, filter) => {
 }
 
 
-const store = (item) => {
+const store = (item: Item) => {
   let todos = JSON.parse(localStorage.getItem(enumList.dbName));
 
-  const itemIdx = todos.findIndex(( element ) => element.id === item.id);
+  const itemIdx = todos.findIndex(( element: Item ) => element.id === item.id);
   if(itemIdx !== -1){
     // 기존의 것을 수정하는 경우
     todos[itemIdx] = item;
@@ -43,7 +52,7 @@ const store = (item) => {
 
 const showAll = () => {
   const todos = JSON.parse(localStorage.getItem(enumList.dbName));
-  const todoList = todos.map(({id, title, completed}) => {
+  const todoList = todos.map(({id, title, completed}: Item) => {
     const cname = completed ? "completed" : "";
     return (
       <li className={cname} key={id}>
@@ -59,9 +68,9 @@ const showAll = () => {
   return todoList;
 }
 
-const show = (filter) => {
+const show = (filter: string | boolean) => {
   const todos = JSON.parse(localStorage.getItem(enumList.dbName));
-  const todoList = todos.filter(({completed}) => completed === filter).map(({id, title, completed}) => {
+  const todoList = todos.filter(({completed}: Item) => completed === filter).map(({id, title, completed}: Item) => {
     const cname = completed ? "completed" : "";
     return (
       <li key={id} className={cname}>
@@ -78,20 +87,21 @@ const show = (filter) => {
 }
 
 
-class Page extends React.Component {
-  constructor(props){
+class Page extends React.Component<Props, State> {
+  constructor(props: Props){
     super(props);
     if(!localStorage.getItem(enumList.dbName)){
       localStorage.setItem(enumList.dbName, JSON.stringify([]));
     }
     this.state = {
-      todoList: showAll()
+      todoList : showAll(),
     }
+
     this.handleKeyPress = this.handleKeyPress.bind(this);
   }
 
-  handleKeyPress(event){
-    const title = event.target.value;
+  handleKeyPress(event: React.KeyboardEvent<HTMLInputElement>){
+    const title = event.currentTarget.value;
     if (event.key === 'Enter' && title.trim() !== ''){
       const newItem = {
         id: new Date().getTime(),
@@ -101,7 +111,7 @@ class Page extends React.Component {
       let todos = JSON.parse(localStorage.getItem(enumList.dbName));
       todos.push(newItem);
       localStorage.setItem(enumList.dbName, JSON.stringify(todos));
-      event.target.value = "";
+      event.currentTarget.value = "";
 
       this.setState({
         todoList: showAll()
@@ -114,9 +124,9 @@ class Page extends React.Component {
     return(
       <React.Fragment>
         <section className={enumList.sectionClassName} >
-          <Todos dbName={enumList.dbName} handleKeyPress={this.handleKeyPress} addTodo={addTodo} todoList={todoList}/>
+          <Todos todoList={todoList} handleKeyPress={this.handleKeyPress} addTodo={addTodo} />
         </section>
-        <Footer className={enumList.footerClassName} />
+        <Footer />
       </React.Fragment>
     );
   }

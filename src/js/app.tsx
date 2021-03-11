@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { BrowserRouter } from 'react-router-dom';
 import Page from './page';
 
 export const App = () => {
@@ -11,5 +10,5 @@ export const App = () => {
 
 ReactDOM.render(
   <App />,
-  document.querySelector('#root')
+  document.getElementById('root')
 );

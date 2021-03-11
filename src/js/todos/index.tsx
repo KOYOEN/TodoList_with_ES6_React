@@ -3,8 +3,22 @@ import TodoHeader from './todoHeader';
 import TodoMain from './todoMain';
 import TodoFooter from './todoFooter';
 
-const Index = (props) => {
 
+
+interface Item {
+    id: number,
+    title: string,
+    completed: boolean
+}
+
+export interface Props {
+    todoList?: Array<Item>,
+    handleKeyPress(event: React.KeyboardEvent<HTMLInputElement>): void,
+    addTodo(title: string, filter: string | boolean): void,
+}
+
+
+const Index = (props: Props) => {
   return(
     <div>
       <TodoHeader addTodo={props.addTodo} handleKeyPress={props.handleKeyPress}/>

@@ -1,6 +1,7 @@
 import React from 'react';
+import {Props} from './index';
 
-const TodoMain = (props) => {
+const TodoMain = (props: Props) => {
 
   return(
     <section className="main">
