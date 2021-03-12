@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "babel": "babel src/js -w -d dist/js",
-    "build": "webpack -w"
+    "build": "webpack -w",
+    "dev" : "webpack-dev-server"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +14,10 @@
   "devDependencies": {
     "@babel/cli": "^7.7.0",
     "@babel/core": "^7.7.2",
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@babel/preset-env": "^7.7.1",
     "@babel/preset-react": "^7.10.4",
+    "@types/webpack-dev-server": "^3.11.2",
     "babel-loader": "^8.0.6",
     "css-loader": "^3.2.0",
     "less": "^4.1.1",
@@ -24,7 +27,8 @@
     "ts-loader": "^8.0.17",
     "typescript": "^4.2.3",
     "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10"
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.13.0",

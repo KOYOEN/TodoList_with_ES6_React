@@ -26,19 +26,21 @@ const addTodo = (title: string, filter: string | boolean) => {
     title: title,
     completed: false
   }
-  store(newItem);
-  if(filter === "All"){
-    showAll();
-  }else{
-    show(filter);
-  }
+  save(newItem);
 }
 
+const find = (query: Item) => {
+  const todos = JSON.parse(localStorage.getItem(enumList.dbName));
+  return todos.filter((item: Item) => item.id === query.id );
+}
 
-const store = (item: Item) => {
-  let todos = JSON.parse(localStorage.getItem(enumList.dbName));
+const findAll = () => {
+  return JSON.parse(localStorage.getItem(enumList.dbName));
+}
 
-  const itemIdx = todos.findIndex(( element: Item ) => element.id === item.id);
+const save = (item: Item) => {
+  let todos = findAll();
+  const itemIdx = todos.findIndex( (element:Item) => element.id === item.id);
   if(itemIdx !== -1){
     // 기존의 것을 수정하는 경우
     todos[itemIdx] = item;
@@ -46,46 +48,40 @@ const store = (item: Item) => {
     // 새로 삽입하는 경우
     todos.push(item);
   }
+ ;
+
   localStorage.setItem(enumList.dbName, JSON.stringify(todos));
 }
 
-
-const showAll = () => {
-  const todos = JSON.parse(localStorage.getItem(enumList.dbName));
-  const todoList = todos.map(({id, title, completed}: Item) => {
-    const cname = completed ? "completed" : "";
-    return (
-      <li className={cname} key={id}>
-        <div className="view">
-          <input type="checkbox" className="toggle" />
-          <label>{title}</label>
-          <button className="destroy" />
-        </div>
-      </li>
-    );
+const toggleAllItems = (completed: boolean) => {
+  const todos = findAll();
+  todos.forEach((item:Item) => {
+    if(item.completed === completed){
+      toggleItem(item.id);
+    }
   });
-
-  return todoList;
 }
 
-const show = (filter: string | boolean) => {
-  const todos = JSON.parse(localStorage.getItem(enumList.dbName));
-  const todoList = todos.filter(({completed}: Item) => completed === filter).map(({id, title, completed}: Item) => {
-    const cname = completed ? "completed" : "";
-    return (
-      <li key={id} className={cname}>
-        <div className="view">
-          <input type="checkbox" className="toggle"/>
-          <label>{title}</label>
-          <button className="destroy" />
-        </div>
-      </li>
-    );
+const toggleItem = (id: number) => {
+  let todos = findAll();
+  todos.forEach(( item: Item ) => {
+    if (item.id === id){
+      item.completed = !item.completed;
+      save(item);
+      return;
+    }
   });
-
-  return todoList;
 }
+const _getItemId = (element: HTMLInputElement) => {
+  let li;
+  if (element.parentNode.nodeName.toLowerCase() === 'li'){
+    li = element.parentElement;
+  }else {
+    li = element.parentNode.parentElement;
+  }
 
+  return parseInt(li.dataset.id, 10);
+}
 
 class Page extends React.Component<Props, State> {
   constructor(props: Props){
@@ -94,11 +90,55 @@ class Page extends React.Component<Props, State> {
       localStorage.setItem(enumList.dbName, JSON.stringify([]));
     }
     this.state = {
-      todoList : showAll(),
+      todoList : this.showAll(),
     }
-
+    this.handleChange = this.handleChange.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
+
+    console.log('test', this.state);
   }
+
+
+  showAll(){
+    const todos = findAll();
+    console.log('todo', todos);
+    console.log('test');
+    const todoList = todos.map(({id, title, completed}: Item) => {
+      const cname = completed ? "completed" : "";
+      const checked = completed;
+      return (
+        <li className={cname} data-id={id} key={id}>
+          <div className="view">
+            <input type="checkbox" className="toggle" onChange={this.handleChange} checked={checked}/>
+            <label>{title}</label>
+            <button className="destroy" />
+          </div>
+        </li>
+      );
+    });
+
+    return todoList;
+  }
+
+  show(filter: string | boolean){
+    const todos = JSON.parse(localStorage.getItem(enumList.dbName));
+    const todoList = todos.filter(({completed}: Item) => completed === filter).map(({id, title, completed}: Item) => {
+      const cname = completed ? "completed" : "";
+      const checked = completed;
+      return (
+        <li key={id} className={cname}>
+          <div className="view">
+            <input type="checkbox" className="toggle" onChange={this.handleChange} checked={checked}/>
+            <label>{title}</label>
+            <button className="destroy" />
+          </div>
+        </li>
+      );
+    });
+
+    return todoList;
+  }
+
 
   handleKeyPress(event: React.KeyboardEvent<HTMLInputElement>){
     const title = event.currentTarget.value;
@@ -114,9 +154,22 @@ class Page extends React.Component<Props, State> {
       event.currentTarget.value = "";
 
       this.setState({
-        todoList: showAll()
-      })
+        todoList: this.showAll()
+      });
     }
+  }
+
+  handleChange (event: React.ChangeEvent<HTMLInputElement>){
+    let target = event.currentTarget;
+    if(target.className === 'toggle-all'){
+      toggleAllItems(!target.checked);
+    }else if(target.className === 'toggle'){
+      toggleItem(_getItemId(target))
+    }
+
+    this.setState({
+      todoList: this.showAll()
+    });
   }
 
   render() {
@@ -124,12 +177,19 @@ class Page extends React.Component<Props, State> {
     return(
       <React.Fragment>
         <section className={enumList.sectionClassName} >
-          <Todos todoList={todoList} handleKeyPress={this.handleKeyPress} addTodo={addTodo} />
+          <Todos todoList={todoList} handleKeyPress={this.handleKeyPress} addTodo={addTodo} handleChange={this.handleChange}/>
         </section>
         <Footer />
       </React.Fragment>
     );
   }
+
+  componentDidMount() {
+    this.setState({
+      todoList: this.showAll()
+    });
+  }
+
 }
 
 export default Page;

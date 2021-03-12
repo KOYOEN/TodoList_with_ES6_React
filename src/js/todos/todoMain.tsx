@@ -5,7 +5,7 @@ const TodoMain = (props: Props) => {
 
   return(
     <section className="main">
-      <input id="toggle-all" className="toggle-all" type="checkbox" />
+      <input id="toggle-all" className="toggle-all" type="checkbox" onClick={props.handleChange}/>
       <label htmlFor="toggle-all" />
       <ul className="todo-list">
         {props.todoList}

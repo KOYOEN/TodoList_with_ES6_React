@@ -5,10 +5,11 @@ module.exports = {
   entry: './src/js/app.tsx',
   output: {
     path: path.resolve(__dirname, 'dist/js'),
-    filename: 'bundle.js'
+    filename: 'bundle.js',
+
   },
   plugins: [
-    new MiniCssExtractPlugin({ filename: 'css/style.css'})
+    new MiniCssExtractPlugin({ filename: 'css/style.css'}),
   ],
   module: {
     rules: [
@@ -38,5 +39,5 @@ module.exports = {
   mode: 'development',
   resolve: {
     extensions: ['.js', '.json', '.ts', '.tsx']
-  }
+  },
 };
