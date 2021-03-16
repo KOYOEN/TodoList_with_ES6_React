@@ -1,7 +1,5 @@
 import React from 'react';
-import {Props} from './index';
-
-
+import { Props } from '../Page';
 
 class TodoHeader extends React.Component<Props> {
   constructor(props: Props){

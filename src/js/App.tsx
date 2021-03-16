@@ -1,14 +1,20 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import Page from './page';
+import Page from './Page';
+import {
+  Switch,
+  Route
+} from "react-router-dom";
 
-export const App = () => {
+
+
+const App = () => {
   return (
-    <Page />
+    <Switch>
+      <Route path="/" component={Page} />
+      <Route path="/active" component={Page} />
+      <Route path="/completed" component={Page} />
+    </Switch>
   );
 }
 
-ReactDOM.render(
-  <App />,
-  document.getElementById('root')
-);
+export default App;

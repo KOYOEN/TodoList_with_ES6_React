@@ -1,7 +1,8 @@
 import React from 'react';
-import TodoHeader from './todos/todoHeader';
-import Todos from './todos/index';
-import Footer from './footer';
+import Footer from './Footer';
+import TodoHeader from "./todos/TodoHeader";
+import TodoMain from "./todos/TodoMain";
+import TodoFooter from "./todos/TodoFooter";
 
 enum enumList {
   dbName = "todos-reactjs",
@@ -13,14 +14,23 @@ interface Item {
   title: string,
   completed: boolean
 }
-interface Props { }
-interface State {
-  todoList?: Array<Item>
+export interface Props {
+  todoList?: JSX.Element[],
+  currentPage?: string,
+  handleKeyPress?(event: React.KeyboardEvent<HTMLInputElement>): void,
+  handleChange?(event: React.ChangeEvent<HTMLInputElement>): void,
+  handleOnClick?(event: React.MouseEvent<HTMLElement>): void,
+  addTodo?(title: string, filter: string | boolean): void,
 }
 
-const addTodo = (title: string, filter: string | boolean) => {
+interface State {
+  todoList?: JSX.Element[],
+  currentPage?: string
+}
+
+const addTodo = (title: string) => {
   title = title || "";
-  filter = filter || "All";
+
   let newItem:Item = {
     id : new Date().getTime(),
     title: title,
@@ -79,70 +89,89 @@ const _getItemId = (element: HTMLInputElement) => {
   }else {
     li = element.parentNode.parentElement;
   }
-
   return parseInt(li.dataset.id, 10);
 }
 
+const _getLocation = () => {
+  const ret = window.location.pathname.split('/')[1];
+  return ret === '' ? 'all' : ret;
+
+}
+
 class Page extends React.Component<Props, State> {
-  constructor(props: Props){
+  constructor(props: Props) {
     super(props);
-    if(!localStorage.getItem(enumList.dbName)){
+    const location = _getLocation();
+    const data = findAll();
+
+    if (!localStorage.getItem(enumList.dbName)) {
       localStorage.setItem(enumList.dbName, JSON.stringify([]));
     }
+
     this.state = {
-      todoList : this.showAll(),
+      currentPage: location
     }
+
+    if (location === 'all') {
+      this.state = {
+        todoList: this.showEntries(data)
+      }
+    } else {
+      const isCompleted = location === 'completed';
+      this.state = {
+        todoList: this.showEntries(
+          data.filter(({completed}: Item) => completed === isCompleted)
+        )
+      }
+    }
+
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
-
-    console.log('test', this.state);
+    this.handleOnClick = this.handleOnClick.bind(this);
   }
 
 
-  showAll(){
-    const todos = findAll();
-    console.log('todo', todos);
-    console.log('test');
-    const todoList = todos.map(({id, title, completed}: Item) => {
-      const cname = completed ? "completed" : "";
-      const checked = completed;
-      return (
-        <li className={cname} data-id={id} key={id}>
-          <div className="view">
-            <input type="checkbox" className="toggle" onChange={this.handleChange} checked={checked}/>
-            <label>{title}</label>
-            <button className="destroy" />
-          </div>
-        </li>
-      );
+  showAll() {
+    const data = findAll();
+    this.setState({
+      todoList: this.showEntries(data)
     });
-
-    return todoList;
   }
 
-  show(filter: string | boolean){
+  show(filter: string) {
     const todos = JSON.parse(localStorage.getItem(enumList.dbName));
-    const todoList = todos.filter(({completed}: Item) => completed === filter).map(({id, title, completed}: Item) => {
-      const cname = completed ? "completed" : "";
-      const checked = completed;
-      return (
-        <li key={id} className={cname}>
-          <div className="view">
-            <input type="checkbox" className="toggle" onChange={this.handleChange} checked={checked}/>
-            <label>{title}</label>
-            <button className="destroy" />
-          </div>
-        </li>
-      );
-    });
+    const isCompleted = filter === 'completed';
+    const data = todos.filter(({completed}: Item) => completed === isCompleted);
 
-    return todoList;
+    this.setState({
+      todoList: this.showEntries(data)
+    });
   }
 
+  showEntries(data: Array<Item>) {
+    // return 만들기기
+    const ret = data.map((item: Item) => {
+      let completed = '';
+      if (item.completed) {
+        completed = 'completed';
+      }
+      return (
+        <li key={item.id} data-id={item.id.toString()} className={completed}>
+          <div className="view">
+            <input type="checkbox" className="toggle" onChange={this.handleChange} checked={item.completed}/>
+            <label>{item.title}</label>
+            <button className="destroy"/>
+          </div>
+        </li>
+      )
+    });
+    return ret;
+  }
 
-  handleKeyPress(event: React.KeyboardEvent<HTMLInputElement>){
+  handleKeyPress(event: React.KeyboardEvent<HTMLInputElement>) {
     const title = event.currentTarget.value;
-    if (event.key === 'Enter' && title.trim() !== ''){
+    const currentPage = this.state.currentPage;
+    if (event.key === 'Enter' && title.trim() !== '') {
       const newItem = {
         id: new Date().getTime(),
         title: title.trim(),
@@ -153,43 +182,88 @@ class Page extends React.Component<Props, State> {
       localStorage.setItem(enumList.dbName, JSON.stringify(todos));
       event.currentTarget.value = "";
 
-      this.setState({
-        todoList: this.showAll()
-      });
+      if (currentPage === 'all') {
+        this.showAll()
+      } else {
+        this.show(currentPage)
+      }
     }
   }
 
-  handleChange (event: React.ChangeEvent<HTMLInputElement>){
+  handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     let target = event.currentTarget;
-    if(target.className === 'toggle-all'){
+    const currentPage = this.state.currentPage;
+    if (target.className === 'toggle-all') {
       toggleAllItems(!target.checked);
-    }else if(target.className === 'toggle'){
+    } else if (target.className === 'toggle') {
       toggleItem(_getItemId(target))
     }
 
+    if (currentPage === 'all') {
+      this.showAll()
+    } else {
+      this.show(currentPage)
+    }
+  }
+
+  handleOnClick(event: React.MouseEvent<HTMLElement>) {
+    const target = event.currentTarget;
+    let targetPage:string = target.getAttribute('href').slice(1);
+
+    if(targetPage === ''){
+      targetPage = 'all';
+    }
+
+    if (this.state.currentPage === targetPage) {
+      return;
+    } else if (targetPage === 'all') {
+      this.showAll()
+    } else {
+      this.show(targetPage)
+    }
     this.setState({
-      todoList: this.showAll()
+      currentPage: targetPage
     });
   }
 
   render() {
     const todoList = this.state.todoList;
-    return(
+    const currentPage = this.state.currentPage;
+    return (
       <React.Fragment>
-        <section className={enumList.sectionClassName} >
-          <Todos todoList={todoList} handleKeyPress={this.handleKeyPress} addTodo={addTodo} handleChange={this.handleChange}/>
+        <section className={enumList.sectionClassName}>
+          <div>
+            <TodoHeader
+              addTodo={addTodo}
+              handleKeyPress={this.handleKeyPress}
+            />
+            <TodoMain
+              todoList={todoList}
+              handleChange={this.handleChange}
+            />
+            <TodoFooter
+              handleOnClick={this.handleOnClick}
+              currentPage={currentPage}
+            />
+          </div>
         </section>
-        <Footer />
+        <Footer/>
       </React.Fragment>
     );
   }
 
   componentDidMount() {
-    this.setState({
-      todoList: this.showAll()
-    });
-  }
+    const location: string = _getLocation();
+    if (location === 'all') {
+      this.showAll()
+    } else {
+      this.show(location)
+    }
 
+    this.setState({
+      currentPage: location
+    })
+  }
 }
 
 export default Page;

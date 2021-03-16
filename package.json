@@ -6,7 +6,7 @@
   "scripts": {
     "babel": "babel src/js -w -d dist/js",
     "build": "webpack -w",
-    "dev" : "webpack-dev-server"
+    "dev": "webpack-dev-server --config webpack.config.js"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +17,7 @@
     "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@babel/preset-env": "^7.7.1",
     "@babel/preset-react": "^7.10.4",
+    "@types/react-router-dom": "^5.1.7",
     "@types/webpack-dev-server": "^3.11.2",
     "babel-loader": "^8.0.6",
     "css-loader": "^3.2.0",
