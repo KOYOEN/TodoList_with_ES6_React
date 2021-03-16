@@ -2,9 +2,9 @@ const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
-  entry: './src/js/app.tsx',
+  entry: './src/js/index.js',
   output: {
-    path: path.resolve(__dirname, 'dist/js'),
+    path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
 
   },
@@ -39,5 +39,12 @@ module.exports = {
   mode: 'development',
   resolve: {
     extensions: ['.js', '.json', '.ts', '.tsx']
+  },
+  devServer: {
+    host: 'localhost',
+    port: 8080,
+    noInfo: true,
+    historyApiFallback: true,
+    open: true, // open page when start
   },
 };
