@@ -12,14 +12,17 @@ enum enumList {
 interface Item {
   id: number,
   title: string,
-  completed: boolean
+  completed: boolean,
+  editing: boolean
 }
+
 export interface Props {
   todoList?: JSX.Element[],
   currentPage?: string,
   handleKeyPress?(event: React.KeyboardEvent<HTMLInputElement>): void,
   handleChange?(event: React.ChangeEvent<HTMLInputElement>): void,
   handleOnClick?(event: React.MouseEvent<HTMLElement>): void,
+  handleOnDbClick?(event: React.MouseEvent<HTMLLabelElement>): void,
   addTodo?(title: string, filter: string | boolean): void,
 }
 
@@ -31,17 +34,28 @@ interface State {
 const addTodo = (title: string) => {
   title = title || "";
 
-  let newItem:Item = {
+  const newItem:Item = {
     id : new Date().getTime(),
     title: title,
-    completed: false
+    completed: false,
+    editing: false
   }
   save(newItem);
 }
 
-const find = (query: Item) => {
+const updateTodo = (id: number, title: string) => {
+  title = title || "";
+
+  let updateItem: Item = find(id);
+  updateItem.title = title;
+  updateItem.editing = false;
+
+  save(updateItem);
+}
+
+const find = (id: number) => {
   const todos = JSON.parse(localStorage.getItem(enumList.dbName));
-  return todos.filter((item: Item) => item.id === query.id );
+  return todos.filter((item: Item) => item.id === id )[0];
 }
 
 const findAll = () => {
@@ -82,7 +96,9 @@ const toggleItem = (id: number) => {
     }
   });
 }
-const _getItemId = (element: HTMLInputElement) => {
+
+
+const _getItemId = (element: HTMLElement) => {
   let li;
   if (element.parentNode.nodeName.toLowerCase() === 'li'){
     li = element.parentElement;
@@ -128,6 +144,7 @@ class Page extends React.Component<Props, State> {
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
     this.handleOnClick = this.handleOnClick.bind(this);
+    this.handleOnDbClick = this.handleOnDbClick.bind(this);
   }
 
 
@@ -152,16 +169,28 @@ class Page extends React.Component<Props, State> {
     // return 만들기기
     const ret = data.map((item: Item) => {
       let completed = '';
+      let editing = '';
       if (item.completed) {
         completed = 'completed';
       }
+      if (item.editing) {
+        editing = 'editing';
+      }
       return (
-        <li key={item.id} data-id={item.id.toString()} className={completed}>
+        <li key={item.id} data-id={item.id} className={completed + editing}>
           <div className="view">
             <input type="checkbox" className="toggle" onChange={this.handleChange} checked={item.completed}/>
-            <label>{item.title}</label>
+            <label onDoubleClick={this.handleOnDbClick}>{item.title}</label>
             <button className="destroy"/>
           </div>
+          <input
+            key={item.id}
+            data-id={item.id}
+            type="text"
+            className="edit"
+            defaultValue={item.title}
+            onKeyPress={this.handleKeyPress}
+          />
         </li>
       )
     });
@@ -169,18 +198,17 @@ class Page extends React.Component<Props, State> {
   }
 
   handleKeyPress(event: React.KeyboardEvent<HTMLInputElement>) {
-    const title = event.currentTarget.value;
+    const target = event.currentTarget;
+    const title = target.value;
     const currentPage = this.state.currentPage;
     if (event.key === 'Enter' && title.trim() !== '') {
-      const newItem = {
-        id: new Date().getTime(),
-        title: title.trim(),
-        completed: false
+      if (target.className === "new-todo") {
+        addTodo(title.trim());
+        event.currentTarget.value = "";
+      }else {
+        // edit의 경우
+        updateTodo(parseInt(target.dataset.id), title);
       }
-      let todos = JSON.parse(localStorage.getItem(enumList.dbName));
-      todos.push(newItem);
-      localStorage.setItem(enumList.dbName, JSON.stringify(todos));
-      event.currentTarget.value = "";
 
       if (currentPage === 'all') {
         this.showAll()
@@ -224,6 +252,29 @@ class Page extends React.Component<Props, State> {
     this.setState({
       currentPage: targetPage
     });
+  }
+
+  handleOnDbClick(event: React.MouseEvent<HTMLLabelElement>) {
+    const target = event.currentTarget; // label
+    const targetId = _getItemId(target);
+    const currentPage = this.state.currentPage;
+    let targetItem: Item = find(targetId);
+
+    // li의 className에 'editing' 붙여주기
+    targetItem.editing = true;
+    save(targetItem);
+    // todoList로 만들 항목 Array로 만들기
+    let dataList:Array<Item> = findAll();
+    if (this.state.currentPage !== 'all') {
+      const filter:boolean = this.state.currentPage === "completed";
+      dataList = dataList.filter(({completed}: Item) => completed === filter);
+    }
+    if (currentPage === 'all'){
+      this.showAll();
+    }else {
+      this.show(currentPage);
+    }
+
   }
 
   render() {

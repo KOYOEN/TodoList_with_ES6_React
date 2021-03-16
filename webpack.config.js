@@ -40,4 +40,11 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.json', '.ts', '.tsx']
   },
+  devServer: {
+    host: 'localhost',
+    port: 8080,
+    noInfo: true,
+    historyApiFallback: true,
+    open: true, // open page when start
+  },
 };
