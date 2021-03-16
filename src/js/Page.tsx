@@ -16,19 +16,29 @@ interface Item {
   editing: boolean
 }
 
+interface Count {
+  active: number,
+  completed: number,
+  total: number
+}
+
 export interface Props {
   todoList?: JSX.Element[],
   currentPage?: string,
+  count?: Count,
+  isCheckedToggleAll?: boolean,
   handleKeyPress?(event: React.KeyboardEvent<HTMLInputElement>): void,
   handleChange?(event: React.ChangeEvent<HTMLInputElement>): void,
   handleOnClick?(event: React.MouseEvent<HTMLElement>): void,
   handleOnDbClick?(event: React.MouseEvent<HTMLLabelElement>): void,
-  addTodo?(title: string, filter: string | boolean): void,
+  handleDelete?(event: React.MouseEvent<HTMLButtonElement>): void,
 }
 
 interface State {
   todoList?: JSX.Element[],
-  currentPage?: string
+  currentPage?: string,
+  count: Count,
+  isCheckedToggleAll?: boolean,
 }
 
 const addTodo = (title: string) => {
@@ -51,6 +61,17 @@ const updateTodo = (id: number, title: string) => {
   updateItem.editing = false;
 
   save(updateItem);
+}
+
+const deleteTodo = (id: number) => {
+  const dataList = findAll();
+  const itemIdx = dataList.findIndex((item: Item) => item.id == id);
+  if(itemIdx === -1){
+    return;
+  }
+  dataList.splice(itemIdx, 1);
+
+  localStorage.setItem(enumList.dbName, JSON.stringify(dataList));
 }
 
 const find = (id: number) => {
@@ -76,6 +97,7 @@ const save = (item: Item) => {
 
   localStorage.setItem(enumList.dbName, JSON.stringify(todos));
 }
+
 
 const toggleAllItems = (completed: boolean) => {
   const todos = findAll();
@@ -114,6 +136,37 @@ const _getLocation = () => {
 
 }
 
+const getCount = () => {
+  const dataList = findAll();
+  const count = {
+    active: 0,
+    completed: 0,
+    total: 0
+  };
+
+  dataList.forEach((item: Item) => {
+    if(item.completed){
+      count.completed++;
+    }else {
+      count.active++;
+    }
+    count.total++;
+  });
+
+
+  return count;
+}
+
+const getToggleAllStatus = (count: Count) => {
+  //toggle-all 체크박스를 동기화해주는 값을 반환하는 함수
+  if(count.total !== 0 && count.total === count.completed){
+    return true;
+  }else {
+    return false;
+  }
+}
+
+
 class Page extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -124,20 +177,22 @@ class Page extends React.Component<Props, State> {
       localStorage.setItem(enumList.dbName, JSON.stringify([]));
     }
 
-    this.state = {
-      currentPage: location
-    }
-
+    const cnt = getCount();
     if (location === 'all') {
       this.state = {
-        todoList: this.showEntries(data)
+        todoList: this.showEntries(data),
+        currentPage: location,
+        count: cnt
       }
     } else {
       const isCompleted = location === 'completed';
       this.state = {
         todoList: this.showEntries(
           data.filter(({completed}: Item) => completed === isCompleted)
-        )
+        ),
+        currentPage: location,
+        count: cnt,
+        isCheckedToggleAll: getToggleAllStatus(cnt)
       }
     }
 
@@ -145,6 +200,7 @@ class Page extends React.Component<Props, State> {
     this.handleKeyPress = this.handleKeyPress.bind(this);
     this.handleOnClick = this.handleOnClick.bind(this);
     this.handleOnDbClick = this.handleOnDbClick.bind(this);
+    this.handleDelete = this.handleDelete.bind(this);
   }
 
 
@@ -181,7 +237,7 @@ class Page extends React.Component<Props, State> {
           <div className="view">
             <input type="checkbox" className="toggle" onChange={this.handleChange} checked={item.completed}/>
             <label onDoubleClick={this.handleOnDbClick}>{item.title}</label>
-            <button className="destroy"/>
+            <button className="destroy" onClick={this.handleDelete}/>
           </div>
           <input
             key={item.id}
@@ -216,6 +272,12 @@ class Page extends React.Component<Props, State> {
         this.show(currentPage)
       }
     }
+    const cnt = getCount();
+    this.setState({
+      count: cnt,
+      isCheckedToggleAll: getToggleAllStatus(cnt)
+    });
+
   }
 
   handleChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -227,11 +289,16 @@ class Page extends React.Component<Props, State> {
       toggleItem(_getItemId(target))
     }
 
+   const cnt = getCount();
     if (currentPage === 'all') {
       this.showAll()
     } else {
       this.show(currentPage)
     }
+    this.setState({
+      count: cnt,
+      isCheckedToggleAll: getToggleAllStatus(cnt)
+    });
   }
 
   handleOnClick(event: React.MouseEvent<HTMLElement>) {
@@ -249,8 +316,12 @@ class Page extends React.Component<Props, State> {
     } else {
       this.show(targetPage)
     }
+
+    const cnt = getCount();
     this.setState({
-      currentPage: targetPage
+      currentPage: targetPage,
+      count: cnt,
+      isCheckedToggleAll: getToggleAllStatus(cnt)
     });
   }
 
@@ -274,7 +345,42 @@ class Page extends React.Component<Props, State> {
     }else {
       this.show(currentPage);
     }
+    const cnt = getCount();
+    this.setState({
+      count: cnt,
+      isCheckedToggleAll: getToggleAllStatus(cnt)
+    })
 
+  }
+
+  handleDelete(event: React.MouseEvent<HTMLButtonElement>){
+    const target = event.currentTarget;
+    const currentPage = this.state.currentPage;
+    if(target.className === 'destroy'){
+      //X 표시로 지우는 경우
+      deleteTodo(_getItemId(target));
+    }else {
+      // Clear completed 버튼으로 지우는 경우
+      const dataList = findAll();
+      dataList.forEach((item: Item) => {
+        if(item.completed === true){
+          deleteTodo(item.id);
+        }
+      });
+    }
+
+    if (currentPage === 'all'){
+      this.showAll();
+    }else {
+      this.show(currentPage);
+    }
+
+    const cnt = getCount();
+
+    this.setState({
+      count: cnt,
+      isCheckedToggleAll: getToggleAllStatus(cnt)
+    })
   }
 
   render() {
@@ -285,16 +391,19 @@ class Page extends React.Component<Props, State> {
         <section className={enumList.sectionClassName}>
           <div>
             <TodoHeader
-              addTodo={addTodo}
               handleKeyPress={this.handleKeyPress}
             />
             <TodoMain
+              count={this.state.count}
+              isCheckedToggleAll={this.state.isCheckedToggleAll}
               todoList={todoList}
               handleChange={this.handleChange}
             />
             <TodoFooter
-              handleOnClick={this.handleOnClick}
+              count={this.state.count}
               currentPage={currentPage}
+              handleOnClick={this.handleOnClick}
+              handleDelete={this.handleDelete}
             />
           </div>
         </section>
@@ -312,7 +421,8 @@ class Page extends React.Component<Props, State> {
     }
 
     this.setState({
-      currentPage: location
+      currentPage: location,
+      count: getCount()
     })
   }
 }
