@@ -6,11 +6,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
-
   },
-  plugins: [
-    new MiniCssExtractPlugin({ filename: 'css/style.css'}),
-  ],
   module: {
     rules: [
       {
@@ -25,20 +21,34 @@ module.exports = {
         }
       },
       {
-        test: /\.less$/i,
+        test: /\.less$/,
+        include: path.resolve(__dirname, 'src/less'),
         use: [
           MiniCssExtractPlugin.loader,
-          'css-loader',
-          'less-loader'
+          {
+            loader: 'css-loader',
+            options: {
+              sourceMap: true,
+            },
+          },
+          {
+            loader: 'less-loader',
+            options: {
+              sourceMap: true,
+              lessOptions: {
+                paths: [path.resolve(__dirname, "node_modules")],
+              }
+            }
+          }
         ],
-        exclude: /node_modules/
-      }
-    ]
+      },
+    ],
   },
+  plugins: [new MiniCssExtractPlugin({ filename: 'app.css'})],
   devtool: 'source-map',
   mode: 'development',
   resolve: {
-    extensions: ['.js', '.json', '.ts', '.tsx']
+    extensions: ['.js', '.json', '.ts', '.tsx', 'less', 'css']
   },
   devServer: {
     host: 'localhost',

@@ -4,6 +4,11 @@ import App from './App';
 import {
   BrowserRouter as Router
 } from "react-router-dom";
+import "../less/base.less";
+import "../less/index.less";
+
+
+
 
 ReactDOM.render(
   <Router>

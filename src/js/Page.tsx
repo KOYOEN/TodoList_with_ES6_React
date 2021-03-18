@@ -3,32 +3,15 @@ import Footer from './Footer';
 import TodoHeader from "./todos/TodoHeader";
 import TodoMain from "./todos/TodoMain";
 import TodoFooter from "./todos/TodoFooter";
+import {enumList, Item, Count} from "./Model";
 
-enum enumList {
-  dbName = "todos-reactjs",
-  sectionClassName = "todoapp",
-}
-
-interface Item {
-  id: number,
-  title: string,
-  completed: boolean,
-  editing: boolean
-}
-
-export interface Props {
-  todoList?: JSX.Element[],
-  currentPage?: string,
-  handleKeyPress?(event: React.KeyboardEvent<HTMLInputElement>): void,
-  handleChange?(event: React.ChangeEvent<HTMLInputElement>): void,
-  handleOnClick?(event: React.MouseEvent<HTMLElement>): void,
-  handleOnDbClick?(event: React.MouseEvent<HTMLLabelElement>): void,
-  addTodo?(title: string, filter: string | boolean): void,
-}
+interface Props {}
 
 interface State {
-  todoList?: JSX.Element[],
-  currentPage?: string
+  dataList: Item[],
+  currentPage?: string,
+  count: Count,
+  toggleAll: boolean,
 }
 
 const addTodo = (title: string) => {
@@ -53,6 +36,17 @@ const updateTodo = (id: number, title: string) => {
   save(updateItem);
 }
 
+const deleteTodo = (id: number) => {
+  const dataList = findAll();
+  const itemIdx = dataList.findIndex((item: Item) => item.id == id);
+  if(itemIdx === -1){
+    return;
+  }
+  dataList.splice(itemIdx, 1);
+
+  localStorage.setItem(enumList.dbName, JSON.stringify(dataList));
+}
+
 const find = (id: number) => {
   const todos = JSON.parse(localStorage.getItem(enumList.dbName));
   return todos.filter((item: Item) => item.id === id )[0];
@@ -72,8 +66,6 @@ const save = (item: Item) => {
     // 새로 삽입하는 경우
     todos.push(item);
   }
- ;
-
   localStorage.setItem(enumList.dbName, JSON.stringify(todos));
 }
 
@@ -98,7 +90,7 @@ const toggleItem = (id: number) => {
 }
 
 
-const _getItemId = (element: HTMLElement) => {
+const getItemId = (element: HTMLElement) => {
   let li;
   if (element.parentNode.nodeName.toLowerCase() === 'li'){
     li = element.parentElement;
@@ -108,193 +100,130 @@ const _getItemId = (element: HTMLElement) => {
   return parseInt(li.dataset.id, 10);
 }
 
-const _getLocation = () => {
+const _getPageName = () => {
   const ret = window.location.pathname.split('/')[1];
   return ret === '' ? 'all' : ret;
 
 }
 
+const _getCount = () => {
+  const dataList = findAll();
+  const count = {
+    active: 0,
+    completed: 0,
+    total: 0
+  };
+
+  dataList.forEach((item: Item) => {
+    if(item.completed){
+      count.completed++;
+    }else {
+      count.active++;
+    }
+    count.total++;
+  });
+
+  return count;
+}
+
+
+const isToggleAll = (count: Count) => {
+  //toggle-all 체크박스를 동기화해주는 값을 반환하는 함수
+  if(count.total !== 0 && count.total === count.completed){
+    return true;
+  }else {
+    return false;
+  }
+}
+
+
 class Page extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    const location = _getLocation();
-    const data = findAll();
+    const pageName = _getPageName();
 
     if (!localStorage.getItem(enumList.dbName)) {
       localStorage.setItem(enumList.dbName, JSON.stringify([]));
     }
 
-    this.state = {
-      currentPage: location
-    }
-
-    if (location === 'all') {
+    const allDataList = findAll();
+    const cnt = _getCount();
+    if (pageName === 'all'){
       this.state = {
-        todoList: this.showEntries(data)
-      }
-    } else {
-      const isCompleted = location === 'completed';
-      this.state = {
-        todoList: this.showEntries(
-          data.filter(({completed}: Item) => completed === isCompleted)
-        )
-      }
-    }
-
-    this.handleChange = this.handleChange.bind(this);
-    this.handleKeyPress = this.handleKeyPress.bind(this);
-    this.handleOnClick = this.handleOnClick.bind(this);
-    this.handleOnDbClick = this.handleOnDbClick.bind(this);
-  }
-
-
-  showAll() {
-    const data = findAll();
-    this.setState({
-      todoList: this.showEntries(data)
-    });
-  }
-
-  show(filter: string) {
-    const todos = JSON.parse(localStorage.getItem(enumList.dbName));
-    const isCompleted = filter === 'completed';
-    const data = todos.filter(({completed}: Item) => completed === isCompleted);
-
-    this.setState({
-      todoList: this.showEntries(data)
-    });
-  }
-
-  showEntries(data: Array<Item>) {
-    // return 만들기기
-    const ret = data.map((item: Item) => {
-      let completed = '';
-      let editing = '';
-      if (item.completed) {
-        completed = 'completed';
-      }
-      if (item.editing) {
-        editing = 'editing';
-      }
-      return (
-        <li key={item.id} data-id={item.id} className={completed + editing}>
-          <div className="view">
-            <input type="checkbox" className="toggle" onChange={this.handleChange} checked={item.completed}/>
-            <label onDoubleClick={this.handleOnDbClick}>{item.title}</label>
-            <button className="destroy"/>
-          </div>
-          <input
-            key={item.id}
-            data-id={item.id}
-            type="text"
-            className="edit"
-            defaultValue={item.title}
-            onKeyPress={this.handleKeyPress}
-          />
-        </li>
-      )
-    });
-    return ret;
-  }
-
-  handleKeyPress(event: React.KeyboardEvent<HTMLInputElement>) {
-    const target = event.currentTarget;
-    const title = target.value;
-    const currentPage = this.state.currentPage;
-    if (event.key === 'Enter' && title.trim() !== '') {
-      if (target.className === "new-todo") {
-        addTodo(title.trim());
-        event.currentTarget.value = "";
-      }else {
-        // edit의 경우
-        updateTodo(parseInt(target.dataset.id), title);
-      }
-
-      if (currentPage === 'all') {
-        this.showAll()
-      } else {
-        this.show(currentPage)
-      }
-    }
-  }
-
-  handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    let target = event.currentTarget;
-    const currentPage = this.state.currentPage;
-    if (target.className === 'toggle-all') {
-      toggleAllItems(!target.checked);
-    } else if (target.className === 'toggle') {
-      toggleItem(_getItemId(target))
-    }
-
-    if (currentPage === 'all') {
-      this.showAll()
-    } else {
-      this.show(currentPage)
-    }
-  }
-
-  handleOnClick(event: React.MouseEvent<HTMLElement>) {
-    const target = event.currentTarget;
-    let targetPage:string = target.getAttribute('href').slice(1);
-
-    if(targetPage === ''){
-      targetPage = 'all';
-    }
-
-    if (this.state.currentPage === targetPage) {
-      return;
-    } else if (targetPage === 'all') {
-      this.showAll()
-    } else {
-      this.show(targetPage)
-    }
-    this.setState({
-      currentPage: targetPage
-    });
-  }
-
-  handleOnDbClick(event: React.MouseEvent<HTMLLabelElement>) {
-    const target = event.currentTarget; // label
-    const targetId = _getItemId(target);
-    const currentPage = this.state.currentPage;
-    let targetItem: Item = find(targetId);
-
-    // li의 className에 'editing' 붙여주기
-    targetItem.editing = true;
-    save(targetItem);
-    // todoList로 만들 항목 Array로 만들기
-    let dataList:Array<Item> = findAll();
-    if (this.state.currentPage !== 'all') {
-      const filter:boolean = this.state.currentPage === "completed";
-      dataList = dataList.filter(({completed}: Item) => completed === filter);
-    }
-    if (currentPage === 'all'){
-      this.showAll();
+        dataList: allDataList,
+        currentPage: pageName,
+        count: cnt,
+        toggleAll: isToggleAll(cnt)
+      };
     }else {
-      this.show(currentPage);
+      const isCompleted = pageName === 'completed';
+      const updatedDataList = allDataList.filter(({completed}: Item) => completed === isCompleted);
+      this.state = {
+        dataList: updatedDataList,
+        currentPage: pageName,
+        count: cnt,
+        toggleAll: isToggleAll(cnt)
+      };
     }
-
+    this.setDataList = this.setDataList.bind(this);
   }
+
+  setDataList(pageName: string){
+    const allDataList = findAll();
+    const cnt = _getCount();
+    if (pageName === 'all'){
+      this.setState({
+        dataList: allDataList,
+        currentPage: pageName,
+        count: cnt,
+        toggleAll: isToggleAll(cnt)
+      });
+    }else {
+      const isCompleted = pageName === 'completed';
+      const updatedDataList = allDataList.filter(({completed}: Item) => completed === isCompleted);
+      this.setState({
+        dataList: updatedDataList,
+        currentPage: pageName,
+        count: cnt,
+        toggleAll: isToggleAll(cnt)
+      })
+    }
+  }
+
 
   render() {
-    const todoList = this.state.todoList;
-    const currentPage = this.state.currentPage;
     return (
       <React.Fragment>
         <section className={enumList.sectionClassName}>
           <div>
             <TodoHeader
+              currentPage = {this.state.currentPage}
               addTodo={addTodo}
-              handleKeyPress={this.handleKeyPress}
+              updateTodo={updateTodo}
+              setDataList={this.setDataList}
             />
             <TodoMain
-              todoList={todoList}
-              handleChange={this.handleChange}
+              dataList={this.state.dataList}
+              currentPage={this.state.currentPage}
+              count={this.state.count}
+              toggleAll={this.state.toggleAll}
+              findAll={findAll}
+              find={find}
+              save={save}
+              updateTodo={updateTodo}
+              deleteTodo={deleteTodo}
+              toggleAllItems={toggleAllItems}
+              toggleItem={toggleItem}
+              getItemId={getItemId}
+              setDataList={this.setDataList}
             />
             <TodoFooter
-              handleOnClick={this.handleOnClick}
-              currentPage={currentPage}
+              dataList={this.state.dataList}
+              currentPage={this.state.currentPage}
+              count={this.state.count}
+              findAll={findAll}
+              deleteTodo={deleteTodo}
+              setDataList={this.setDataList}
             />
           </div>
         </section>
@@ -304,16 +233,7 @@ class Page extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    const location: string = _getLocation();
-    if (location === 'all') {
-      this.showAll()
-    } else {
-      this.show(location)
-    }
-
-    this.setState({
-      currentPage: location
-    })
+    this.setDataList(this.state.currentPage);
   }
 }
 
