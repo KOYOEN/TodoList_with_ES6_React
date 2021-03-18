@@ -7,14 +7,16 @@ import {
 
 
 
-const App = () => {
-  return (
-    <Switch>
-      <Route path="/" component={Page} />
-      <Route path="/active" component={Page} />
-      <Route path="/completed" component={Page} />
-    </Switch>
-  );
+class App extends React.Component{
+  render() {
+    return (
+        <Switch>
+          <Route path="/" component={Page}/>
+          <Route path="/active" component={Page}/>
+          <Route path="/completed" component={Page}/>
+        </Switch>
+    );
+  }
 }
 
 export default App;
